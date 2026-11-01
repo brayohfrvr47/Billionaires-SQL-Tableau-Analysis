@@ -87,4 +87,53 @@ ORDER BY women_percentage DESC;
 -- =====================================================
 
 
+-- ANALYSIS 6: AVERAGE BILLIONAIRE WEALTH BY INDUSTRY
+-- Business question:
+-- Among industries with at least 10 billionaires, which have the
+-- highest average billionaire wealth, and how do their billionaire
+-- counts and total wealth compare?
+
+SELECT industries,
+       number_of_billionaires,
+       total_industry_wealth,
+       average_billionaire_wealth
+FROM   (SELECT industries,
+           COUNT(*) AS number_of_billionaires,
+			(SELECT ROUND(AVG(finalWorth) / 1000, 1)
+               FROM billionaires_portfolio AS B
+               WHERE Q.industries = B.industries) AS average_billionaire_wealth,
+           ROUND(SUM(finalWorth) / 1000, 1) AS total_industry_wealth
+    FROM billionaires_portfolio AS Q
+    GROUP BY industries
+) AS industries_total
+WHERE number_of_billionaires >= 10
+ORDER BY average_billionaire_wealth DESC;
+
+
+-- =====================================================
+
+
+-- ANALYSIS 7: RANKED BILLIONAIRES ABOVE INDUSTRY AVERAGE
+-- Business question:
+-- Who are the 3 wealthiest billionaires in each industry whose
+-- individual wealth exceeds the average wealth of billionaires
+-- in that industry?
+
+SELECT personName,industries,
+       ROUND(finalWorth/1000,2) AS billionaire_wealth,
+       ROUND(average_industry_wealth,2) AS average_industry_wealth,industry_rank
+FROM (SELECT personName,industries,finalWorth,
+           (SELECT AVG(finalWorth)/1000
+            FROM billionaires_portfolio AS B
+            WHERE Q.industries = B.industries) AS average_industry_wealth,
+           RANK() OVER (PARTITION BY industries
+               ORDER BY finalWorth DESC) AS industry_rank
+    FROM billionaires_portfolio AS Q) AS ranked_billionaires
+WHERE industry_rank <= 3
+AND finalWorth/1000 > average_industry_wealth;
+
+
+-- =====================================================
+
+
 
