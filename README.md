@@ -127,12 +127,62 @@ are under 9% women. Gambling & Casinos tops the list at 40%, but that is only 2 
 
 [View chart](https://public.tableau.com/views/WomenBillionairesbyIndustry/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 
+### 6. Among industries with at least 10 billionaires, which have the highest average billionaire wealth, and how do their billionaire counts and total wealth compare?
+
+```sql
+-- SELECT industries,
+       number_of_billionaires,
+       total_industry_wealth,
+       average_billionaire_wealth
+FROM   (SELECT industries,
+           COUNT(*) AS number_of_billionaires,
+			(SELECT ROUND(AVG(finalWorth) / 1000, 1)
+               FROM billionaires_portfolio AS B
+               WHERE Q.industries = B.industries) AS average_billionaire_wealth,
+           ROUND(SUM(finalWorth) / 1000, 1) AS total_industry_wealth
+    FROM billionaires_portfolio AS Q
+    GROUP BY industries
+) AS industries_total
+WHERE number_of_billionaires >= 10
+ORDER BY average_billionaire_wealth DESC;
+```
+
+**Finding:** Automotive ranked the highest with an average of ($24.8B) per billionaire among industries with 
+at least 10 billionaires, Fashion & Retail ranked second with an average of ($21.5B), Technology followed
+closely ranking third with an average of ($21.0B).Technology's total billionaire wealth was approximately ($1,299.8 B), compared with $397.2 B in Automotive. This demonstrates that an industry's total wealth and its average wealth per billionaire measure different things, the results show that industries with the greatest combined wealth do not necessarily have the highest average wealth per billionaire.
+
+[view chart](https://public.tableau.com/views/AverageBillionaireWealthByIndustryUSDBillions/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+
+### 7. Who are the 3 wealthiest billionaires in each industry whose individual wealth exceeds the average wealth of billionaires in that industry?
+
+```sql
+-- SELECT personName,industries,
+       ROUND(finalWorth/1000,2) AS billionaire_wealth,
+       ROUND(average_industry_wealth,2) AS average_industry_wealth,industry_rank
+FROM (SELECT personName,industries,finalWorth,
+           (SELECT AVG(finalWorth)/1000
+            FROM billionaires_portfolio AS B
+            WHERE Q.industries = B.industries) AS average_industry_wealth,
+           RANK() OVER (PARTITION BY industries
+               ORDER BY finalWorth DESC) AS industry_rank
+    FROM billionaires_portfolio AS Q) AS ranked_billionaires
+WHERE industry_rank <= 3
+AND finalWorth/1000 > average_industry_wealth;
+```
+
+**Finding:** The analysis identifies the 3 highest-ranked billionaires in each industry whose individual net worth exceeds their respective industry average. It highlights individuals who stand out in terms of wealth within their industries, while also showing that global billionaire rankings do not necessarily translate into the same ranking across individual industries.
+
+[view chart](https://public.tableau.com/views/RankedBillionairesAboveIndustryAverage/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+
+
 ## Dashboard links
 - [Billionaire Wealth by Industry](https://public.tableau.com/views/BillionaireWealthbyIndustry/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 - [Self-made vs Inherited Billionaires](https://public.tableau.com/views/Self-madevsInheritedBillionaires/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 - [Billionaires by Age Group](https://public.tableau.com/views/BillionairesByAgeGroup/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 - [Billionaires per Million People](https://public.tableau.com/views/BillionairesPerMillionPeople/Dashboard1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 - [Women Billionaires by Industry](https://public.tableau.com/views/WomenBillionairesbyIndustry/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+- [Average Billonaire Wealth by Industry](https://public.tableau.com/views/AverageBillionaireWealthByIndustryUSDBillions/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+- [Ranked Billionaires Above Industry Average](https://public.tableau.com/views/RankedBillionairesAboveIndustryAverage/Sheet1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 
 All dashboards are on my [Tableau Public profile](https://public.tableau.com/app/profile/brian.lugunga).
 
@@ -149,6 +199,12 @@ All dashboards are on my [Tableau Public profile](https://public.tableau.com/app
   the wider workforce of an industry. Percentages from industries with very few
   billionaires should be read cautiously.
 - The data is a snapshot in time and does not show how fortunes change.
+- The findings reflect the billionaires and industry classifications represented in this dataset.
+  They should not beinterpreted as a complete representation of all wealthy individuals or the entire business sector.
+- Wealth values are displayed in billions and rounded, so small differences between industries may be less precise than      the displayed figures suggest.
+- The analysis is limited to the top 3 ranked billionaires per industry, excluding other billionaires who may also           exceed their industry's average wealth.
+- Industry averages can be influenced by exceptionally wealthy individuals, potentially making comparisons less              representative of the typical billionaire in an industry.
+  
 
   ## What I learned
 - How `CASE WHEN` works, including why the order of conditions matters: SQL stops
@@ -159,4 +215,6 @@ All dashboards are on my [Tableau Public profile](https://public.tableau.com/app
   off-by-one error (`>` vs `>=`) in one of my queries.
 - Using ROUND ','*'/' to calculate percentages, round of decimals & multiply.
 - Exporting query results as CSV files from SQL and building a dashboard from them.
+- How `RANK` works i was able to use rank to get billionaires wealth in their respective
+  industries and get the top 3 billionaires in every industry.
 
